@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../blocs/recipe_cubit.dart';
+import '../main.dart';
 import '../models/ingredient.dart';
 import '../models/recipe.dart';
-import '../state/app_state.dart';
 import 'revision_history_screen.dart';
 
 class RecipeEditScreen extends StatefulWidget {
   final String? recipeId;
-
   const RecipeEditScreen({super.key, this.recipeId});
 
   @override
@@ -15,120 +17,108 @@ class RecipeEditScreen extends StatefulWidget {
 
 class _RecipeEditScreenState extends State<RecipeEditScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _descController = TextEditingController();
-  final _changeNoteController = TextEditingController();
+  final _titleCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+  final _changeNoteCtrl = TextEditingController();
   int _servings = 2;
-  final List<_IngredientEntry> _ingredients = [];
-  final List<TextEditingController> _stepControllers = [];
+  final List<_IngEntry> _ingredients = [];
+  final List<TextEditingController> _stepCtrls = [];
 
   bool get _isEditing => widget.recipeId != null;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadRecipe());
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _loadExisting());
   }
 
-  void _loadRecipe() {
+  void _loadExisting() {
     if (!_isEditing) {
-      _addStep();
       _addIngredient();
+      _addStep();
       return;
     }
-    final appState = AppStateProvider.of(context);
-    final recipe = appState.getRecipeById(widget.recipeId!);
+    final recipe =
+        context.read<RecipeCubit>().getById(widget.recipeId!);
     if (recipe == null) return;
 
-    _titleController.text = recipe.title;
-    _descController.text = recipe.description;
+    _titleCtrl.text = recipe.title;
+    _descCtrl.text = recipe.description;
     setState(() {
       _servings = recipe.servings;
-      _ingredients.addAll(recipe.ingredients.map((ing) => _IngredientEntry(
+      _ingredients.addAll(recipe.ingredients.map((ing) => _IngEntry(
             id: ing.id,
-            nameController: TextEditingController(text: ing.name),
-            amountController:
-                TextEditingController(text: _formatAmount(ing.amount)),
-            unitController: TextEditingController(text: ing.unit),
+            nameCtrl:
+                TextEditingController(text: ing.name),
+            amountCtrl: TextEditingController(
+                text: _fmtAmt(ing.amount)),
+            unitCtrl:
+                TextEditingController(text: ing.unit),
           )));
-      _stepControllers.addAll(
+      _stepCtrls.addAll(
           recipe.steps.map((s) => TextEditingController(text: s)));
     });
   }
 
-  String _formatAmount(double amount) {
-    if (amount == amount.roundToDouble()) return amount.toInt().toString();
-    return amount.toString();
-  }
+  String _fmtAmt(double v) =>
+      v == v.roundToDouble() ? v.toInt().toString() : v.toString();
 
-  void _addIngredient() {
-    setState(() {
-      _ingredients.add(_IngredientEntry(
+  void _addIngredient() => setState(() => _ingredients.add(_IngEntry(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        nameController: TextEditingController(),
-        amountController: TextEditingController(),
-        unitController: TextEditingController(),
-      ));
-    });
-  }
+        nameCtrl: TextEditingController(),
+        amountCtrl: TextEditingController(),
+        unitCtrl: TextEditingController(),
+      )));
 
-  void _removeIngredient(int index) {
-    setState(() {
-      _ingredients[index].dispose();
-      _ingredients.removeAt(index);
-    });
-  }
+  void _removeIngredient(int i) => setState(() {
+        _ingredients[i].dispose();
+        _ingredients.removeAt(i);
+      });
 
-  void _addStep() {
-    setState(() => _stepControllers.add(TextEditingController()));
-  }
+  void _addStep() =>
+      setState(() => _stepCtrls.add(TextEditingController()));
 
-  void _removeStep(int index) {
-    setState(() {
-      _stepControllers[index].dispose();
-      _stepControllers.removeAt(index);
-    });
-  }
+  void _removeStep(int i) => setState(() {
+        _stepCtrls[i].dispose();
+        _stepCtrls.removeAt(i);
+      });
 
   void _save() {
     if (!_formKey.currentState!.validate()) return;
 
-    final appState = AppStateProvider.of(context);
     final now = DateTime.now();
-
     final ingredients = _ingredients
-        .where((e) => e.nameController.text.trim().isNotEmpty)
+        .where((e) => e.nameCtrl.text.trim().isNotEmpty)
         .map((e) => Ingredient(
               id: e.id,
-              name: e.nameController.text.trim(),
-              amount:
-                  double.tryParse(e.amountController.text.trim()) ?? 0,
-              unit: e.unitController.text.trim(),
+              name: e.nameCtrl.text.trim(),
+              amount: double.tryParse(e.amountCtrl.text.trim()) ?? 0,
+              unit: e.unitCtrl.text.trim(),
             ))
         .toList();
 
-    final steps = _stepControllers
+    final steps = _stepCtrls
         .map((c) => c.text.trim())
         .where((s) => s.isNotEmpty)
         .toList();
 
     if (_isEditing) {
-      final existing = appState.getRecipeById(widget.recipeId!)!;
+      final existing =
+          context.read<RecipeCubit>().getById(widget.recipeId!)!;
       final updated = existing.copyWith(
-        title: _titleController.text.trim(),
-        description: _descController.text.trim(),
+        title: _titleCtrl.text.trim(),
+        description: _descCtrl.text.trim(),
         ingredients: ingredients,
         steps: steps,
         servings: _servings,
         updatedAt: now,
       );
-      appState.updateRecipe(
-        widget.recipeId!,
-        updated,
-        changeNote: _changeNoteController.text.trim(),
-      );
-
-      // Navigate to revision history after edit
+      context.read<RecipeCubit>().updateRecipe(
+            widget.recipeId!,
+            updated,
+            changeNote: _changeNoteCtrl.text.trim(),
+          );
       Navigator.pop(context);
       Navigator.push(
         context,
@@ -138,51 +128,48 @@ class _RecipeEditScreenState extends State<RecipeEditScreen> {
         ),
       );
     } else {
-      final recipe = Recipe(
-        id: now.millisecondsSinceEpoch.toString(),
-        title: _titleController.text.trim(),
-        description: _descController.text.trim(),
-        ingredients: ingredients,
-        steps: steps,
-        servings: _servings,
-        createdAt: now,
-        updatedAt: now,
-      );
-      appState.addRecipe(recipe);
+      context.read<RecipeCubit>().addRecipe(Recipe(
+            id: now.millisecondsSinceEpoch.toString(),
+            title: _titleCtrl.text.trim(),
+            description: _descCtrl.text.trim(),
+            ingredients: ingredients,
+            steps: steps,
+            servings: _servings,
+            createdAt: now,
+            updatedAt: now,
+          ));
       Navigator.pop(context);
     }
   }
 
   @override
   void dispose() {
-    _titleController.dispose();
-    _descController.dispose();
-    _changeNoteController.dispose();
-    for (final e in _ingredients) {
-      e.dispose();
-    }
-    for (final c in _stepControllers) {
-      c.dispose();
-    }
+    _titleCtrl.dispose();
+    _descCtrl.dispose();
+    _changeNoteCtrl.dispose();
+    for (final e in _ingredients) e.dispose();
+    for (final c in _stepCtrls) c.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: kBgDark,
       appBar: AppBar(
         title: Text(_isEditing ? 'Edit Recipe' : 'New Recipe'),
-        backgroundColor: colorScheme.surface,
+        backgroundColor: kBgDark,
         actions: [
           TextButton(
             onPressed: _save,
             child: Text(
-              'Save',
-              style: TextStyle(
-                  color: colorScheme.primary, fontWeight: FontWeight.bold),
+              'SAVE',
+              style: GoogleFonts.courierPrime(
+                color: kAccent,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 2,
+                fontSize: 12,
+              ),
             ),
           ),
         ],
@@ -190,144 +177,157 @@ class _RecipeEditScreenState extends State<RecipeEditScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           children: [
-            // Basic Info
-            _SectionHeader(title: 'Basic Info'),
+            _SectionLabel(label: 'BASIC INFO'),
             const SizedBox(height: 12),
             TextFormField(
-              controller: _titleController,
+              controller: _titleCtrl,
+              style: GoogleFonts.playfairDisplay(
+                  color: kCream, fontWeight: FontWeight.w600),
               decoration: const InputDecoration(
-                labelText: 'Recipe Title',
-                hintText: 'e.g. Classic Spaghetti Carbonara',
-                prefixIcon: Icon(Icons.restaurant_menu),
+                labelText: 'Recipe title',
+                hintText: 'e.g. Classic Carbonara',
               ),
               textCapitalization: TextCapitalization.words,
               validator: (v) =>
-                  v == null || v.trim().isEmpty ? 'Title is required' : null,
+                  v == null || v.trim().isEmpty ? 'Title required' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
-              controller: _descController,
+              controller: _descCtrl,
+              style: GoogleFonts.courierPrime(color: kCream, fontSize: 13),
               decoration: const InputDecoration(
                 labelText: 'Description',
-                hintText: 'A brief description of the recipe...',
-                prefixIcon: Icon(Icons.description_outlined),
+                hintText: 'A brief description...',
                 alignLabelWithHint: true,
               ),
               maxLines: 3,
               textCapitalization: TextCapitalization.sentences,
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                const Icon(Icons.people_outline, size: 20),
-                const SizedBox(width: 8),
-                Text('Servings',
-                    style: Theme.of(context).textTheme.bodyLarge),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.remove_circle_outline),
-                  onPressed: _servings > 1
-                      ? () => setState(() => _servings--)
-                      : null,
-                ),
-                SizedBox(
-                  width: 40,
-                  child: Text(
-                    '$_servings',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+
+            // Servings
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                  color: kBgMid,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: kBorderColor)),
+              child: Row(
+                children: [
+                  const Icon(Icons.people_outline, size: 18),
+                  const SizedBox(width: 10),
+                  Text('Servings',
+                      style: GoogleFonts.courierPrime(
+                          color: kCreamMuted, fontSize: 13)),
+                  const Spacer(),
+                  _CircleButton(
+                    icon: Icons.remove,
+                    onTap: _servings > 1
+                        ? () => setState(() => _servings--)
+                        : null,
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add_circle_outline),
-                  onPressed: () => setState(() => _servings++),
-                ),
-              ],
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      '$_servings',
+                      style: GoogleFonts.playfairDisplay(
+                        color: kCream,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  _CircleButton(
+                    icon: Icons.add,
+                    onTap: () => setState(() => _servings++),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
 
             // Ingredients
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _SectionHeader(title: 'Ingredients'),
+                _SectionLabel(label: 'INGREDIENTS'),
                 TextButton.icon(
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add'),
+                  icon: const Icon(Icons.add, size: 14),
+                  label: const Text('ADD'),
                   onPressed: _addIngredient,
                 ),
               ],
             ),
             const SizedBox(height: 4),
             if (_ingredients.isEmpty)
-              _EmptyHint(label: 'No ingredients yet. Tap Add to begin.'),
-            ...(_ingredients.asMap().entries.map(
-                  (e) => _IngredientFormRow(
-                    key: ValueKey(e.value.id),
-                    entry: e.value,
-                    index: e.key,
-                    onRemove: () => _removeIngredient(e.key),
-                  ),
-                )),
-            const SizedBox(height: 24),
+              _EmptyHint(
+                  text: 'No ingredients yet. Tap ADD to begin.'),
+            ...(_ingredients.asMap().entries.map((e) => _IngFormRow(
+                  key: ValueKey(e.value.id),
+                  entry: e.value,
+                  index: e.key,
+                  onRemove: () => _removeIngredient(e.key),
+                ))),
+            const SizedBox(height: 28),
 
             // Steps
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _SectionHeader(title: 'Steps'),
+                _SectionLabel(label: 'STEPS'),
                 TextButton.icon(
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add Step'),
+                  icon: const Icon(Icons.add, size: 14),
+                  label: const Text('ADD STEP'),
                   onPressed: _addStep,
                 ),
               ],
             ),
             const SizedBox(height: 4),
-            if (_stepControllers.isEmpty)
-              _EmptyHint(label: 'No steps yet. Tap Add Step to begin.'),
-            ...(_stepControllers.asMap().entries.map(
-                  (e) => _StepFormRow(
-                    key: ValueKey('step_${e.key}'),
-                    controller: e.value,
-                    stepNumber: e.key + 1,
-                    onRemove: () => _removeStep(e.key),
-                  ),
-                )),
-            const SizedBox(height: 24),
+            if (_stepCtrls.isEmpty)
+              _EmptyHint(text: 'No steps yet. Tap ADD STEP to begin.'),
+            ...(_stepCtrls.asMap().entries.map((e) => _StepFormRow(
+                  key: ValueKey('step_${e.key}'),
+                  ctrl: e.value,
+                  number: e.key + 1,
+                  onRemove: () => _removeStep(e.key),
+                ))),
+            const SizedBox(height: 28),
 
-            // Change note (only when editing)
+            // Change note (edit only)
             if (_isEditing) ...[
-              _SectionHeader(title: 'Change Note'),
+              _SectionLabel(label: 'CHANGE NOTE'),
               const SizedBox(height: 12),
               TextFormField(
-                controller: _changeNoteController,
+                controller: _changeNoteCtrl,
+                style: GoogleFonts.courierPrime(color: kCream, fontSize: 13),
                 decoration: const InputDecoration(
                   labelText: 'What changed? (optional)',
-                  hintText: 'e.g. Adjusted seasoning, added extra step...',
-                  prefixIcon: Icon(Icons.edit_note),
+                  hintText: 'e.g. Adjusted seasoning...',
                 ),
                 textCapitalization: TextCapitalization.sentences,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
-                'This will be saved in the revision history.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                'This note will be saved in the revision history.',
+                style: GoogleFonts.courierPrime(
+                    color: kCreamMuted, fontSize: 11, letterSpacing: 0.5),
               ),
+              const SizedBox(height: 28),
             ],
-            const SizedBox(height: 32),
-            FilledButton.icon(
-              onPressed: _save,
-              icon: const Icon(Icons.check),
-              label: Text(_isEditing ? 'Save Changes' : 'Create Recipe'),
+
+            // Save button
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _save,
+                icon: const Icon(Icons.check, size: 16),
+                label: Text(
+                    _isEditing ? 'SAVE CHANGES' : 'CREATE RECIPE'),
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -335,88 +335,116 @@ class _RecipeEditScreenState extends State<RecipeEditScreen> {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  const _SectionHeader({required this.title});
+// ─── Helper widgets ───────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String label;
+  const _SectionLabel({required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Text(
-      title,
-      style: Theme.of(context)
-          .textTheme
-          .titleMedium
-          ?.copyWith(fontWeight: FontWeight.bold),
-    );
-  }
-}
-
-class _EmptyHint extends StatelessWidget {
-  final String label;
-  const _EmptyHint({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontStyle: FontStyle.italic,
-            ),
+      label,
+      style: GoogleFonts.courierPrime(
+        color: kAccent,
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 3,
       ),
     );
   }
 }
 
-class _IngredientEntry {
-  final String id;
-  final TextEditingController nameController;
-  final TextEditingController amountController;
-  final TextEditingController unitController;
-
-  _IngredientEntry({
-    required this.id,
-    required this.nameController,
-    required this.amountController,
-    required this.unitController,
-  });
-
-  void dispose() {
-    nameController.dispose();
-    amountController.dispose();
-    unitController.dispose();
-  }
-}
-
-class _IngredientFormRow extends StatelessWidget {
-  final _IngredientEntry entry;
-  final int index;
-  final VoidCallback onRemove;
-
-  const _IngredientFormRow({
-    super.key,
-    required this.entry,
-    required this.index,
-    required this.onRemove,
-  });
+class _EmptyHint extends StatelessWidget {
+  final String text;
+  const _EmptyHint({required this.text});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Text(text,
+          style: GoogleFonts.courierPrime(
+              color: kCreamMuted,
+              fontSize: 12,
+              fontStyle: FontStyle.italic)),
+    );
+  }
+}
+
+class _CircleButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  const _CircleButton({required this.icon, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+              color: onTap == null ? kBorderColor : kBorderAccent),
+        ),
+        child: Icon(icon,
+            size: 16,
+            color: onTap == null ? kCreamMuted.withAlpha(100) : kAccent),
+      ),
+    );
+  }
+}
+
+// ─── Ingredient entry ─────────────────────────────────────────────────────────
+class _IngEntry {
+  final String id;
+  final TextEditingController nameCtrl;
+  final TextEditingController amountCtrl;
+  final TextEditingController unitCtrl;
+
+  _IngEntry({
+    required this.id,
+    required this.nameCtrl,
+    required this.amountCtrl,
+    required this.unitCtrl,
+  });
+
+  void dispose() {
+    nameCtrl.dispose();
+    amountCtrl.dispose();
+    unitCtrl.dispose();
+  }
+}
+
+class _IngFormRow extends StatelessWidget {
+  final _IngEntry entry;
+  final int index;
+  final VoidCallback onRemove;
+
+  const _IngFormRow(
+      {super.key,
+      required this.entry,
+      required this.index,
+      required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             flex: 4,
             child: TextFormField(
-              controller: entry.nameController,
+              controller: entry.nameCtrl,
+              style:
+                  GoogleFonts.courierPrime(color: kCream, fontSize: 13),
               decoration: InputDecoration(
-                labelText: 'Ingredient ${index + 1}',
-                hintText: 'e.g. Flour',
-              ),
+                  labelText: 'Ingredient ${index + 1}',
+                  hintText: 'Flour'),
               textCapitalization: TextCapitalization.words,
               validator: (v) =>
                   v == null || v.trim().isEmpty ? 'Required' : null,
@@ -426,10 +454,13 @@ class _IngredientFormRow extends StatelessWidget {
           Expanded(
             flex: 2,
             child: TextFormField(
-              controller: entry.amountController,
-              decoration: const InputDecoration(labelText: 'Amount'),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              controller: entry.amountCtrl,
+              style:
+                  GoogleFonts.courierPrime(color: kCream, fontSize: 13),
+              decoration:
+                  const InputDecoration(labelText: 'Amount'),
+              keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return 'Required';
                 if (double.tryParse(v.trim()) == null) return 'Invalid';
@@ -441,18 +472,19 @@ class _IngredientFormRow extends StatelessWidget {
           Expanded(
             flex: 2,
             child: TextFormField(
-              controller: entry.unitController,
+              controller: entry.unitCtrl,
+              style:
+                  GoogleFonts.courierPrime(color: kCream, fontSize: 13),
               decoration: const InputDecoration(
-                  labelText: 'Unit', hintText: 'g, cup...'),
-              textCapitalization: TextCapitalization.none,
+                  labelText: 'Unit', hintText: 'g, cup…'),
             ),
           ),
           const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(Icons.remove_circle_outline),
-            color: Theme.of(context).colorScheme.error,
+            icon: const Icon(Icons.remove_circle_outline, size: 20),
+            color: const Color(0xFFCF6679),
             onPressed: onRemove,
-            tooltip: 'Remove ingredient',
+            visualDensity: VisualDensity.compact,
           ),
         ],
       ),
@@ -461,49 +493,50 @@ class _IngredientFormRow extends StatelessWidget {
 }
 
 class _StepFormRow extends StatelessWidget {
-  final TextEditingController controller;
-  final int stepNumber;
+  final TextEditingController ctrl;
+  final int number;
   final VoidCallback onRemove;
 
-  const _StepFormRow({
-    super.key,
-    required this.controller,
-    required this.stepNumber,
-    required this.onRemove,
-  });
+  const _StepFormRow(
+      {super.key,
+      required this.ctrl,
+      required this.number,
+      required this.onRemove});
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 28,
-            height: 28,
+            width: 26,
+            height: 26,
             margin: const EdgeInsets.only(top: 14),
             decoration: BoxDecoration(
-              color: colorScheme.primaryContainer,
-              shape: BoxShape.circle,
+              color: kBgMid,
+              borderRadius: BorderRadius.circular(3),
+              border: Border.all(color: kBorderAccent),
             ),
             alignment: Alignment.center,
             child: Text(
-              '$stepNumber',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.bold,
-                  ),
+              '$number',
+              style: GoogleFonts.playfairDisplay(
+                  color: kAccent,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Expanded(
             child: TextFormField(
-              controller: controller,
+              controller: ctrl,
+              style:
+                  GoogleFonts.courierPrime(color: kCream, fontSize: 13),
               decoration: InputDecoration(
-                  labelText: 'Step $stepNumber',
-                  hintText: 'Describe this step...'),
+                  labelText: 'Step $number',
+                  hintText: 'Describe this step…'),
               maxLines: 2,
               textCapitalization: TextCapitalization.sentences,
               validator: (v) =>
@@ -512,10 +545,10 @@ class _StepFormRow extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(Icons.remove_circle_outline),
-            color: colorScheme.error,
+            icon: const Icon(Icons.remove_circle_outline, size: 20),
+            color: const Color(0xFFCF6679),
             onPressed: onRemove,
-            tooltip: 'Remove step',
+            visualDensity: VisualDensity.compact,
           ),
         ],
       ),

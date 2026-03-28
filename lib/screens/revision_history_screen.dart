@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../blocs/recipe_cubit.dart';
+import '../blocs/recipe_state.dart';
+import '../main.dart';
 import '../models/recipe_revision.dart';
-import '../state/app_state.dart';
 
 class RevisionHistoryScreen extends StatelessWidget {
   final String recipeId;
@@ -13,89 +17,104 @@ class RevisionHistoryScreen extends StatelessWidget {
   });
 
   String _formatDate(DateTime dt) {
-    final months = [
+    const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
-    final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-    final minute = dt.minute.toString().padLeft(2, '0');
+    final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final m = dt.minute.toString().padLeft(2, '0');
     final ampm = dt.hour >= 12 ? 'PM' : 'AM';
-    return '${months[dt.month - 1]} ${dt.day}, ${dt.year} at $hour:$minute $ampm';
+    return '${months[dt.month - 1]} ${dt.day}, ${dt.year} · $h:$m $ampm';
   }
 
   @override
   Widget build(BuildContext context) {
-    final appState = AppStateProvider.of(context);
-    final recipe = appState.getRecipeById(recipeId);
-    final colorScheme = Theme.of(context).colorScheme;
+    return BlocBuilder<RecipeCubit, RecipeState>(
+      builder: (context, state) {
+        final recipe = context.read<RecipeCubit>().getById(recipeId);
 
-    if (recipe == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Revision History')),
-        body: const Center(child: Text('Recipe not found')),
-      );
-    }
+        if (recipe == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Revision History')),
+            body: const Center(child: Text('Recipe not found.')),
+          );
+        }
 
-    // Show revisions newest-first
-    final revisions = recipe.revisions.reversed.toList();
+        final revisions = recipe.revisions.reversed.toList();
 
-    return Scaffold(
-      backgroundColor: colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Revision History'),
-        backgroundColor: colorScheme.surface,
-        subtitle: Text(
-          recipe.title,
-          style: TextStyle(color: colorScheme.onSurfaceVariant),
-        ),
-      ),
-      body: revisions.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.history,
-                      size: 64, color: colorScheme.outlineVariant),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No revisions yet.\nEdit the recipe to create one.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
+        return Scaffold(
+          backgroundColor: kBgDark,
+          appBar: AppBar(
+            title: const Text('Revision History'),
+            backgroundColor: kBgDark,
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(28),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    recipe.title,
+                    style: GoogleFonts.playfairDisplay(
+                      color: kCreamMuted,
+                      fontStyle: FontStyle.italic,
+                      fontSize: 13,
+                    ),
                   ),
-                ],
+                ),
               ),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: revisions.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 0),
-              itemBuilder: (context, index) {
-                final revision = revisions[index];
-                final isLatest = index == 0;
-                return _RevisionCard(
-                  revision: revision,
-                  revisionNumber: revisions.length - index,
-                  isLatest: isLatest && showLatest,
-                  formatDate: _formatDate,
-                );
-              },
             ),
+          ),
+          body: revisions.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('📋', style: TextStyle(fontSize: 56)),
+                      const SizedBox(height: 20),
+                      Text(
+                        'No revisions yet.\nEdit the recipe to create one.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.courierPrime(
+                            color: kCreamMuted, fontSize: 14, height: 1.8),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+                  itemCount: revisions.length,
+                  itemBuilder: (context, index) {
+                    return _RevisionCard(
+                      revision: revisions[index],
+                      number: revisions.length - index,
+                      isFirst: index == 0,
+                      isLast: index == revisions.length - 1,
+                      isHighlighted: index == 0 && showLatest,
+                      formatDate: _formatDate,
+                    );
+                  },
+                ),
+        );
+      },
     );
   }
 }
 
 class _RevisionCard extends StatefulWidget {
   final RecipeRevision revision;
-  final int revisionNumber;
-  final bool isLatest;
+  final int number;
+  final bool isFirst;
+  final bool isLast;
+  final bool isHighlighted;
   final String Function(DateTime) formatDate;
 
   const _RevisionCard({
     required this.revision,
-    required this.revisionNumber,
-    required this.isLatest,
+    required this.number,
+    required this.isFirst,
+    required this.isLast,
+    required this.isHighlighted,
     required this.formatDate,
   });
 
@@ -104,25 +123,26 @@ class _RevisionCard extends StatefulWidget {
 }
 
 class _RevisionCardState extends State<_RevisionCard> {
-  bool _expanded = false;
+  late bool _expanded;
 
   @override
   void initState() {
     super.initState();
-    _expanded = widget.isLatest;
+    _expanded = widget.isHighlighted;
   }
+
+  String _fmtAmt(double v) =>
+      v == v.roundToDouble() ? v.toInt().toString() : v.toString();
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final revision = widget.revision;
 
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Timeline
+          // ── Timeline ──────────────────────────────────────────────────
           SizedBox(
             width: 48,
             child: Column(
@@ -131,128 +151,142 @@ class _RevisionCardState extends State<_RevisionCard> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: widget.isLatest
-                        ? colorScheme.primary
-                        : colorScheme.surfaceContainerHigh,
-                    shape: BoxShape.circle,
+                    color:
+                        widget.isHighlighted ? kAccent : kBgCard,
+                    borderRadius: BorderRadius.circular(3),
                     border: Border.all(
-                      color: widget.isLatest
-                          ? colorScheme.primary
-                          : colorScheme.outlineVariant,
-                      width: 2,
+                      color: widget.isHighlighted
+                          ? kAccent
+                          : kBorderAccent,
+                      width: widget.isHighlighted ? 2 : 1,
                     ),
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    'v${widget.revisionNumber}',
-                    style: textTheme.labelSmall?.copyWith(
-                      color: widget.isLatest
-                          ? colorScheme.onPrimary
-                          : colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.bold,
+                    'v${widget.number}',
+                    style: GoogleFonts.courierPrime(
+                      color: widget.isHighlighted ? kBgDark : kAccent,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
-                Expanded(
-                  child: Container(
-                    width: 2,
-                    color: colorScheme.outlineVariant,
-                    margin: const EdgeInsets.symmetric(vertical: 4),
+                if (!widget.isLast)
+                  Expanded(
+                    child: Container(
+                      width: 1,
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      color: kBorderAccent,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          // Card content
+
+          // ── Card ──────────────────────────────────────────────────────
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Card(
-                elevation: 0,
-                color: widget.isLatest
-                    ? colorScheme.primaryContainer.withAlpha(76)
-                    : colorScheme.surfaceContainerLow,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: widget.isLatest
-                      ? BorderSide(
-                          color: colorScheme.primary.withAlpha(76), width: 1)
-                      : BorderSide.none,
+              padding: EdgeInsets.only(
+                  bottom: widget.isLast ? 0 : 16),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: widget.isHighlighted
+                      ? kBgCard
+                      : kBgCard,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: widget.isHighlighted
+                        ? kBorderAccent
+                        : kBorderColor,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Header
                     InkWell(
-                      onTap: () => setState(() => _expanded = !_expanded),
-                      borderRadius: BorderRadius.circular(12),
+                      onTap: () =>
+                          setState(() => _expanded = !_expanded),
+                      borderRadius: BorderRadius.circular(6),
                       child: Padding(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(14),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                if (widget.isLatest)
+                                if (widget.isHighlighted) ...[
                                   Container(
-                                    margin: const EdgeInsets.only(right: 6),
+                                    margin: const EdgeInsets.only(right: 8),
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: colorScheme.primary,
-                                      borderRadius: BorderRadius.circular(4),
+                                      color: kAccent,
+                                      borderRadius: BorderRadius.circular(2),
                                     ),
                                     child: Text(
-                                      'Latest',
-                                      style: textTheme.labelSmall?.copyWith(
-                                          color: colorScheme.onPrimary),
+                                      'LATEST',
+                                      style: GoogleFonts.courierPrime(
+                                        color: kBgDark,
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 2,
+                                      ),
                                     ),
                                   ),
+                                ],
                                 Expanded(
                                   child: Text(
                                     revision.title,
-                                    style: textTheme.titleSmall?.copyWith(
-                                        fontWeight: FontWeight.w600),
+                                    style: GoogleFonts.playfairDisplay(
+                                      color: kCream,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                    ),
                                   ),
                                 ),
                                 Icon(
                                   _expanded
                                       ? Icons.expand_less
                                       : Icons.expand_more,
-                                  size: 20,
-                                  color: colorScheme.onSurfaceVariant,
+                                  size: 18,
+                                  color: kCreamMuted,
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 6),
                             Text(
                               widget.formatDate(revision.editedAt),
-                              style: textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onSurfaceVariant),
+                              style: GoogleFonts.courierPrime(
+                                color: kCreamMuted,
+                                fontSize: 10,
+                                letterSpacing: 0.5,
+                              ),
                             ),
                             if (revision.changeNote.isNotEmpty) ...[
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
+                                    horizontal: 10, vertical: 5),
                                 decoration: BoxDecoration(
-                                  color: colorScheme.secondaryContainer
-                                      .withAlpha(128),
-                                  borderRadius: BorderRadius.circular(6),
+                                  color: kBgMid,
+                                  borderRadius: BorderRadius.circular(3),
+                                  border:
+                                      Border.all(color: kBorderColor),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.edit_note,
-                                        size: 14,
-                                        color: colorScheme.onSecondaryContainer),
-                                    const SizedBox(width: 4),
+                                    const Icon(Icons.edit_note,
+                                        size: 12, color: kAccent),
+                                    const SizedBox(width: 6),
                                     Flexible(
                                       child: Text(
                                         revision.changeNote,
-                                        style: textTheme.bodySmall?.copyWith(
-                                          color:
-                                              colorScheme.onSecondaryContainer,
+                                        style: GoogleFonts.courierPrime(
+                                          color: kCreamMuted,
+                                          fontSize: 11,
                                           fontStyle: FontStyle.italic,
                                         ),
                                       ),
@@ -265,94 +299,117 @@ class _RevisionCardState extends State<_RevisionCard> {
                         ),
                       ),
                     ),
+
+                    // Expanded content
                     if (_expanded) ...[
-                      Divider(
-                          height: 1, color: colorScheme.outlineVariant),
+                      const Divider(height: 1),
                       Padding(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(14),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (revision.description.isNotEmpty) ...[
                               Text(
                                 revision.description,
-                                style: textTheme.bodyMedium?.copyWith(
-                                    color: colorScheme.onSurfaceVariant),
+                                style: GoogleFonts.courierPrime(
+                                    color: kCreamMuted,
+                                    fontSize: 12,
+                                    height: 1.7),
                               ),
                               const SizedBox(height: 12),
                             ],
-                            Row(
-                              children: [
-                                Icon(Icons.people_outline,
-                                    size: 14,
-                                    color: colorScheme.onSurfaceVariant),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${revision.servings} servings',
-                                  style: textTheme.labelSmall?.copyWith(
-                                      color: colorScheme.onSurfaceVariant),
+                            Row(children: [
+                              const Icon(Icons.people_outline,
+                                  size: 12, color: kCreamMuted),
+                              const SizedBox(width: 5),
+                              Text(
+                                '${revision.servings} SERVINGS',
+                                style: GoogleFonts.courierPrime(
+                                  color: kCreamMuted,
+                                  fontSize: 9,
+                                  letterSpacing: 2,
                                 ),
-                              ],
+                              ),
+                            ]),
+                            const SizedBox(height: 14),
+
+                            // Ingredients
+                            Text(
+                              'INGREDIENTS',
+                              style: GoogleFonts.courierPrime(
+                                color: kAccent,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 3,
+                              ),
                             ),
-                            const SizedBox(height: 10),
-                            Text('Ingredients',
-                                style: textTheme.labelLarge?.copyWith(
-                                    fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 8),
                             ...revision.ingredients.map(
                               (ing) => Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 2),
+                                padding: const EdgeInsets.only(bottom: 5),
                                 child: Row(
                                   children: [
                                     Container(
-                                      width: 6,
-                                      height: 6,
-                                      decoration: BoxDecoration(
-                                        color: colorScheme.primary,
+                                      width: 4,
+                                      height: 4,
+                                      margin: const EdgeInsets.only(
+                                          right: 10, top: 2),
+                                      decoration: const BoxDecoration(
+                                        color: kAccent,
                                         shape: BoxShape.circle,
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
                                     Expanded(
-                                        child: Text(ing.name,
-                                            style: textTheme.bodySmall)),
+                                      child: Text(ing.name,
+                                          style: GoogleFonts.courierPrime(
+                                              color: kCream, fontSize: 12)),
+                                    ),
                                     Text(
                                       '${_fmtAmt(ing.amount)} ${ing.unit}',
-                                      style: textTheme.bodySmall?.copyWith(
-                                          color:
-                                              colorScheme.onSurfaceVariant),
+                                      style: GoogleFonts.courierPrime(
+                                          color: kCreamMuted, fontSize: 11),
                                     ),
                                   ],
                                 ),
                               ),
                             ),
+
                             if (revision.steps.isNotEmpty) ...[
-                              const SizedBox(height: 10),
-                              Text('Steps',
-                                  style: textTheme.labelLarge?.copyWith(
-                                      fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 14),
+                              Text(
+                                'STEPS',
+                                style: GoogleFonts.courierPrime(
+                                  color: kAccent,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 3,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
                               ...revision.steps.asMap().entries.map(
                                     (e) => Padding(
                                       padding:
-                                          const EdgeInsets.only(bottom: 4),
+                                          const EdgeInsets.only(bottom: 6),
                                       child: Row(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            '${e.key + 1}. ',
-                                            style: textTheme.bodySmall
-                                                ?.copyWith(
-                                                    fontWeight:
-                                                        FontWeight.bold,
-                                                    color:
-                                                        colorScheme.primary),
+                                            '${e.key + 1}.',
+                                            style: GoogleFonts.courierPrime(
+                                              color: kAccent,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 11,
+                                            ),
                                           ),
+                                          const SizedBox(width: 6),
                                           Expanded(
                                             child: Text(e.value,
-                                                style: textTheme.bodySmall),
+                                                style:
+                                                    GoogleFonts.courierPrime(
+                                                        color: kCream,
+                                                        fontSize: 12,
+                                                        height: 1.6)),
                                           ),
                                         ],
                                       ),
@@ -371,12 +428,5 @@ class _RevisionCardState extends State<_RevisionCard> {
         ],
       ),
     );
-  }
-
-  String _fmtAmt(double amount) {
-    if (amount == amount.roundToDouble()) return amount.toInt().toString();
-    return double.parse(amount.toStringAsFixed(2))
-        .toString()
-        .replaceAll(RegExp(r'\.?0+$'), '');
   }
 }

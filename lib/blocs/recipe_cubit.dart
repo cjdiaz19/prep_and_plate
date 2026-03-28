@@ -1,23 +1,15 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/ingredient.dart';
 import '../models/recipe.dart';
 import '../models/recipe_revision.dart';
-import '../models/shopping_list_item.dart';
+import 'recipe_state.dart';
 
-class AppState extends ChangeNotifier {
-  final List<Recipe> _recipes = [];
-  final List<ShoppingListItem> _shoppingList = [];
+class RecipeCubit extends Cubit<RecipeState> {
+  RecipeCubit() : super(RecipeState(recipes: _seedRecipes()));
 
-  List<Recipe> get recipes => List.unmodifiable(_recipes);
-  List<ShoppingListItem> get shoppingList => List.unmodifiable(_shoppingList);
-
-  AppState() {
-    _seedData();
-  }
-
-  void _seedData() {
+  static List<Recipe> _seedRecipes() {
     final now = DateTime.now();
-    _recipes.addAll([
+    return [
       Recipe(
         id: '1',
         title: 'Classic Spaghetti Carbonara',
@@ -93,27 +85,26 @@ class AppState extends ChangeNotifier {
         createdAt: now.subtract(const Duration(days: 2)),
         updatedAt: now.subtract(const Duration(days: 2)),
       ),
-    ]);
+    ];
   }
 
-  Recipe? getRecipeById(String id) {
+  Recipe? getById(String id) {
     try {
-      return _recipes.firstWhere((r) => r.id == id);
+      return state.recipes.firstWhere((r) => r.id == id);
     } catch (_) {
       return null;
     }
   }
 
   void addRecipe(Recipe recipe) {
-    _recipes.add(recipe);
-    notifyListeners();
+    emit(state.copyWith(recipes: [...state.recipes, recipe]));
   }
 
   void updateRecipe(String id, Recipe updated, {String changeNote = ''}) {
-    final index = _recipes.indexWhere((r) => r.id == id);
+    final index = state.recipes.indexWhere((r) => r.id == id);
     if (index == -1) return;
 
-    final old = _recipes[index];
+    final old = state.recipes[index];
     final revision = RecipeRevision(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       title: old.title,
@@ -125,80 +116,17 @@ class AppState extends ChangeNotifier {
       changeNote: changeNote.isEmpty ? 'Recipe updated' : changeNote,
     );
 
-    _recipes[index] = updated.copyWith(
+    final newRecipes = List<Recipe>.from(state.recipes);
+    newRecipes[index] = updated.copyWith(
       revisions: [...old.revisions, revision],
       updatedAt: DateTime.now(),
     );
-    notifyListeners();
+    emit(state.copyWith(recipes: newRecipes));
   }
 
   void deleteRecipe(String id) {
-    _recipes.removeWhere((r) => r.id == id);
-    _shoppingList.removeWhere((item) => item.recipeId == id);
-    notifyListeners();
-  }
-
-  void addIngredientToShoppingList(
-    Ingredient ingredient,
-    String recipeId,
-    String recipeName,
-  ) {
-    final existingIndex = _shoppingList.indexWhere(
-      (item) => item.ingredientId == ingredient.id && item.recipeId == recipeId,
-    );
-    if (existingIndex != -1) return;
-
-    _shoppingList.add(ShoppingListItem(
-      id: '${DateTime.now().millisecondsSinceEpoch}${ingredient.id}',
-      ingredientId: ingredient.id,
-      ingredientName: ingredient.name,
-      amount: ingredient.amount,
-      unit: ingredient.unit,
-      recipeId: recipeId,
-      recipeName: recipeName,
+    emit(state.copyWith(
+      recipes: state.recipes.where((r) => r.id != id).toList(),
     ));
-    notifyListeners();
-  }
-
-  void removeFromShoppingList(String id) {
-    _shoppingList.removeWhere((item) => item.id == id);
-    notifyListeners();
-  }
-
-  void toggleShoppingItem(String id) {
-    final index = _shoppingList.indexWhere((item) => item.id == id);
-    if (index == -1) return;
-    _shoppingList[index] =
-        _shoppingList[index].copyWith(isChecked: !_shoppingList[index].isChecked);
-    notifyListeners();
-  }
-
-  void clearCheckedItems() {
-    _shoppingList.removeWhere((item) => item.isChecked);
-    notifyListeners();
-  }
-
-  void clearAllShoppingItems() {
-    _shoppingList.clear();
-    notifyListeners();
-  }
-
-  bool isIngredientInShoppingList(String ingredientId, String recipeId) {
-    return _shoppingList
-        .any((item) => item.ingredientId == ingredientId && item.recipeId == recipeId);
-  }
-}
-
-class AppStateProvider extends InheritedNotifier<AppState> {
-  const AppStateProvider({
-    super.key,
-    required AppState state,
-    required super.child,
-  }) : super(notifier: state);
-
-  static AppState of(BuildContext context) {
-    return context
-        .dependOnInheritedWidgetOfExactType<AppStateProvider>()!
-        .notifier!;
   }
 }
