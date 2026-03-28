@@ -1,31 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../blocs/recipe_cubit.dart';
-import '../blocs/recipe_state.dart';
-import '../main.dart';
-import '../models/recipe_revision.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/utils/formatters.dart';
+import '../../domain/entities/recipe_revision.dart';
+import '../blocs/recipe/recipe_cubit.dart';
+import '../blocs/recipe/recipe_state.dart';
 
-class RevisionHistoryScreen extends StatelessWidget {
+class RevisionHistoryPage extends StatelessWidget {
   final String recipeId;
   final bool showLatest;
 
-  const RevisionHistoryScreen({
+  const RevisionHistoryPage({
     super.key,
     required this.recipeId,
     this.showLatest = false,
   });
-
-  String _formatDate(DateTime dt) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-    final m = dt.minute.toString().padLeft(2, '0');
-    final ampm = dt.hour >= 12 ? 'PM' : 'AM';
-    return '${months[dt.month - 1]} ${dt.day}, ${dt.year} · $h:$m $ampm';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,10 +33,10 @@ class RevisionHistoryScreen extends StatelessWidget {
         final revisions = recipe.revisions.reversed.toList();
 
         return Scaffold(
-          backgroundColor: kBgDark,
+          backgroundColor: AppColors.bgDark,
           appBar: AppBar(
             title: const Text('Revision History'),
-            backgroundColor: kBgDark,
+            backgroundColor: AppColors.bgDark,
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(28),
               child: Padding(
@@ -56,7 +46,7 @@ class RevisionHistoryScreen extends StatelessWidget {
                   child: Text(
                     recipe.title,
                     style: GoogleFonts.playfairDisplay(
-                      color: kCreamMuted,
+                      color: AppColors.creamMuted,
                       fontStyle: FontStyle.italic,
                       fontSize: 13,
                     ),
@@ -76,7 +66,9 @@ class RevisionHistoryScreen extends StatelessWidget {
                         'No revisions yet.\nEdit the recipe to create one.',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.courierPrime(
-                            color: kCreamMuted, fontSize: 14, height: 1.8),
+                            color: AppColors.creamMuted,
+                            fontSize: 14,
+                            height: 1.8),
                       ),
                     ],
                   ),
@@ -91,7 +83,6 @@ class RevisionHistoryScreen extends StatelessWidget {
                       isFirst: index == 0,
                       isLast: index == revisions.length - 1,
                       isHighlighted: index == 0 && showLatest,
-                      formatDate: _formatDate,
                     );
                   },
                 ),
@@ -107,7 +98,6 @@ class _RevisionCard extends StatefulWidget {
   final bool isFirst;
   final bool isLast;
   final bool isHighlighted;
-  final String Function(DateTime) formatDate;
 
   const _RevisionCard({
     required this.revision,
@@ -115,7 +105,6 @@ class _RevisionCard extends StatefulWidget {
     required this.isFirst,
     required this.isLast,
     required this.isHighlighted,
-    required this.formatDate,
   });
 
   @override
@@ -130,9 +119,6 @@ class _RevisionCardState extends State<_RevisionCard> {
     super.initState();
     _expanded = widget.isHighlighted;
   }
-
-  String _fmtAmt(double v) =>
-      v == v.roundToDouble() ? v.toInt().toString() : v.toString();
 
   @override
   Widget build(BuildContext context) {
@@ -151,13 +137,14 @@ class _RevisionCardState extends State<_RevisionCard> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color:
-                        widget.isHighlighted ? kAccent : kBgCard,
+                    color: widget.isHighlighted
+                        ? AppColors.accent
+                        : AppColors.bgCard,
                     borderRadius: BorderRadius.circular(3),
                     border: Border.all(
                       color: widget.isHighlighted
-                          ? kAccent
-                          : kBorderAccent,
+                          ? AppColors.accent
+                          : AppColors.borderAccent,
                       width: widget.isHighlighted ? 2 : 1,
                     ),
                   ),
@@ -165,7 +152,9 @@ class _RevisionCardState extends State<_RevisionCard> {
                   child: Text(
                     'v${widget.number}',
                     style: GoogleFonts.courierPrime(
-                      color: widget.isHighlighted ? kBgDark : kAccent,
+                      color: widget.isHighlighted
+                          ? AppColors.bgDark
+                          : AppColors.accent,
                       fontWeight: FontWeight.w700,
                       fontSize: 11,
                       letterSpacing: 0.5,
@@ -177,7 +166,7 @@ class _RevisionCardState extends State<_RevisionCard> {
                     child: Container(
                       width: 1,
                       margin: const EdgeInsets.symmetric(vertical: 4),
-                      color: kBorderAccent,
+                      color: AppColors.borderAccent,
                     ),
                   ),
               ],
@@ -187,18 +176,15 @@ class _RevisionCardState extends State<_RevisionCard> {
           // ── Card ──────────────────────────────────────────────────────
           Expanded(
             child: Padding(
-              padding: EdgeInsets.only(
-                  bottom: widget.isLast ? 0 : 16),
+              padding: EdgeInsets.only(bottom: widget.isLast ? 0 : 16),
               child: Container(
                 decoration: BoxDecoration(
-                  color: widget.isHighlighted
-                      ? kBgCard
-                      : kBgCard,
+                  color: AppColors.bgCard,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
                     color: widget.isHighlighted
-                        ? kBorderAccent
-                        : kBorderColor,
+                        ? AppColors.borderAccent
+                        : AppColors.border,
                   ),
                 ),
                 child: Column(
@@ -222,13 +208,14 @@ class _RevisionCardState extends State<_RevisionCard> {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: kAccent,
-                                      borderRadius: BorderRadius.circular(2),
+                                      color: AppColors.accent,
+                                      borderRadius:
+                                          BorderRadius.circular(2),
                                     ),
                                     child: Text(
                                       'LATEST',
                                       style: GoogleFonts.courierPrime(
-                                        color: kBgDark,
+                                        color: AppColors.bgDark,
                                         fontSize: 8,
                                         fontWeight: FontWeight.w700,
                                         letterSpacing: 2,
@@ -240,7 +227,7 @@ class _RevisionCardState extends State<_RevisionCard> {
                                   child: Text(
                                     revision.title,
                                     style: GoogleFonts.playfairDisplay(
-                                      color: kCream,
+                                      color: AppColors.cream,
                                       fontWeight: FontWeight.w600,
                                       fontSize: 15,
                                     ),
@@ -251,15 +238,15 @@ class _RevisionCardState extends State<_RevisionCard> {
                                       ? Icons.expand_less
                                       : Icons.expand_more,
                                   size: 18,
-                                  color: kCreamMuted,
+                                  color: AppColors.creamMuted,
                                 ),
                               ],
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              widget.formatDate(revision.editedAt),
+                              Formatters.dateTime(revision.editedAt),
                               style: GoogleFonts.courierPrime(
-                                color: kCreamMuted,
+                                color: AppColors.creamMuted,
                                 fontSize: 10,
                                 letterSpacing: 0.5,
                               ),
@@ -270,22 +257,23 @@ class _RevisionCardState extends State<_RevisionCard> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 10, vertical: 5),
                                 decoration: BoxDecoration(
-                                  color: kBgMid,
+                                  color: AppColors.bgMid,
                                   borderRadius: BorderRadius.circular(3),
-                                  border:
-                                      Border.all(color: kBorderColor),
+                                  border: Border.all(
+                                      color: AppColors.border),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const Icon(Icons.edit_note,
-                                        size: 12, color: kAccent),
+                                        size: 12,
+                                        color: AppColors.accent),
                                     const SizedBox(width: 6),
                                     Flexible(
                                       child: Text(
                                         revision.changeNote,
                                         style: GoogleFonts.courierPrime(
-                                          color: kCreamMuted,
+                                          color: AppColors.creamMuted,
                                           fontSize: 11,
                                           fontStyle: FontStyle.italic,
                                         ),
@@ -312,7 +300,7 @@ class _RevisionCardState extends State<_RevisionCard> {
                               Text(
                                 revision.description,
                                 style: GoogleFonts.courierPrime(
-                                    color: kCreamMuted,
+                                    color: AppColors.creamMuted,
                                     fontSize: 12,
                                     height: 1.7),
                               ),
@@ -320,12 +308,12 @@ class _RevisionCardState extends State<_RevisionCard> {
                             ],
                             Row(children: [
                               const Icon(Icons.people_outline,
-                                  size: 12, color: kCreamMuted),
+                                  size: 12, color: AppColors.creamMuted),
                               const SizedBox(width: 5),
                               Text(
                                 '${revision.servings} SERVINGS',
                                 style: GoogleFonts.courierPrime(
-                                  color: kCreamMuted,
+                                  color: AppColors.creamMuted,
                                   fontSize: 9,
                                   letterSpacing: 2,
                                 ),
@@ -337,7 +325,7 @@ class _RevisionCardState extends State<_RevisionCard> {
                             Text(
                               'INGREDIENTS',
                               style: GoogleFonts.courierPrime(
-                                color: kAccent,
+                                color: AppColors.accent,
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 3,
@@ -346,7 +334,8 @@ class _RevisionCardState extends State<_RevisionCard> {
                             const SizedBox(height: 8),
                             ...revision.ingredients.map(
                               (ing) => Padding(
-                                padding: const EdgeInsets.only(bottom: 5),
+                                padding:
+                                    const EdgeInsets.only(bottom: 5),
                                 child: Row(
                                   children: [
                                     Container(
@@ -355,19 +344,22 @@ class _RevisionCardState extends State<_RevisionCard> {
                                       margin: const EdgeInsets.only(
                                           right: 10, top: 2),
                                       decoration: const BoxDecoration(
-                                        color: kAccent,
+                                        color: AppColors.accent,
                                         shape: BoxShape.circle,
                                       ),
                                     ),
                                     Expanded(
                                       child: Text(ing.name,
-                                          style: GoogleFonts.courierPrime(
-                                              color: kCream, fontSize: 12)),
+                                          style:
+                                              GoogleFonts.courierPrime(
+                                                  color: AppColors.cream,
+                                                  fontSize: 12)),
                                     ),
                                     Text(
-                                      '${_fmtAmt(ing.amount)} ${ing.unit}',
+                                      '${Formatters.amount(ing.amount)} ${ing.unit}',
                                       style: GoogleFonts.courierPrime(
-                                          color: kCreamMuted, fontSize: 11),
+                                          color: AppColors.creamMuted,
+                                          fontSize: 11),
                                     ),
                                   ],
                                 ),
@@ -379,7 +371,7 @@ class _RevisionCardState extends State<_RevisionCard> {
                               Text(
                                 'STEPS',
                                 style: GoogleFonts.courierPrime(
-                                  color: kAccent,
+                                  color: AppColors.accent,
                                   fontSize: 9,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 3,
@@ -388,16 +380,17 @@ class _RevisionCardState extends State<_RevisionCard> {
                               const SizedBox(height: 8),
                               ...revision.steps.asMap().entries.map(
                                     (e) => Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 6),
+                                      padding: const EdgeInsets.only(
+                                          bottom: 6),
                                       child: Row(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             '${e.key + 1}.',
-                                            style: GoogleFonts.courierPrime(
-                                              color: kAccent,
+                                            style:
+                                                GoogleFonts.courierPrime(
+                                              color: AppColors.accent,
                                               fontWeight: FontWeight.w700,
                                               fontSize: 11,
                                             ),
@@ -405,9 +398,10 @@ class _RevisionCardState extends State<_RevisionCard> {
                                           const SizedBox(width: 6),
                                           Expanded(
                                             child: Text(e.value,
-                                                style:
-                                                    GoogleFonts.courierPrime(
-                                                        color: kCream,
+                                                style: GoogleFonts
+                                                    .courierPrime(
+                                                        color:
+                                                            AppColors.cream,
                                                         fontSize: 12,
                                                         height: 1.6)),
                                           ),

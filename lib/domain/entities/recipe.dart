@@ -1,6 +1,7 @@
 import 'ingredient.dart';
 import 'recipe_revision.dart';
 
+/// Core recipe entity — the central business object of the app.
 class Recipe {
   final String id;
   final String title;
@@ -32,17 +33,16 @@ class Recipe {
     int? servings,
     DateTime? updatedAt,
     List<RecipeRevision>? revisions,
-  }) {
-    return Recipe(
-      id: id,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      ingredients: ingredients ?? this.ingredients,
-      steps: steps ?? this.steps,
-      servings: servings ?? this.servings,
-      createdAt: createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      revisions: revisions ?? this.revisions,
-    );
-  }
+  }) =>
+      Recipe(
+        id: id,
+        title: title ?? this.title,
+        description: description ?? this.description,
+        ingredients: ingredients ?? this.ingredients,
+        steps: steps ?? this.steps,
+        servings: servings ?? this.servings,
+        createdAt: createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        revisions: revisions ?? this.revisions,
+      );
 }

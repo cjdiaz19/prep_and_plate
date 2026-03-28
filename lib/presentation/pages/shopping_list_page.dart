@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../blocs/shopping_list_cubit.dart';
-import '../blocs/shopping_list_state.dart';
-import '../main.dart';
-import '../models/shopping_list_item.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/utils/formatters.dart';
+import '../../domain/entities/shopping_list_item.dart';
+import '../blocs/shopping_list/shopping_list_cubit.dart';
+import '../blocs/shopping_list/shopping_list_state.dart';
 
-class ShoppingListScreen extends StatelessWidget {
-  const ShoppingListScreen({super.key});
+class ShoppingListPage extends StatelessWidget {
+  const ShoppingListPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -18,24 +19,25 @@ class ShoppingListScreen extends StatelessWidget {
         final checked = items.where((i) => i.isChecked).toList();
 
         return Scaffold(
-          backgroundColor: kBgDark,
+          backgroundColor: AppColors.bgDark,
           body: CustomScrollView(
             slivers: [
               // ── App Bar ──────────────────────────────────────────────
               SliverAppBar(
                 pinned: true,
                 expandedHeight: 100,
-                backgroundColor: kBgDark,
+                backgroundColor: AppColors.bgDark,
                 surfaceTintColor: Colors.transparent,
                 flexibleSpace: FlexibleSpaceBar(
-                  titlePadding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+                  titlePadding:
+                      const EdgeInsets.fromLTRB(20, 0, 20, 14),
                   title: Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
                         'Shopping ',
                         style: GoogleFonts.playfairDisplay(
-                          color: kCream,
+                          color: AppColors.cream,
                           fontWeight: FontWeight.w700,
                           fontSize: 22,
                         ),
@@ -43,7 +45,7 @@ class ShoppingListScreen extends StatelessWidget {
                       Text(
                         'List',
                         style: GoogleFonts.playfairDisplay(
-                          color: kAccent,
+                          color: AppColors.accent,
                           fontWeight: FontWeight.w700,
                           fontStyle: FontStyle.italic,
                           fontSize: 22,
@@ -54,7 +56,8 @@ class ShoppingListScreen extends StatelessWidget {
                   background: Container(
                     decoration: const BoxDecoration(
                         border: Border(
-                            bottom: BorderSide(color: kBorderColor))),
+                            bottom:
+                                BorderSide(color: AppColors.border))),
                   ),
                 ),
                 actions: [
@@ -87,7 +90,7 @@ class ShoppingListScreen extends StatelessWidget {
                           'Your list is empty.\nAdd ingredients from a recipe!',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.courierPrime(
-                              color: kCreamMuted,
+                              color: AppColors.creamMuted,
                               fontSize: 14,
                               height: 1.8),
                         ),
@@ -110,8 +113,7 @@ class ShoppingListScreen extends StatelessWidget {
                       // Unchecked items grouped by recipe
                       if (unchecked.isNotEmpty)
                         ..._buildGroups(
-                            context: context,
-                            items: unchecked),
+                            context: context, items: unchecked),
 
                       // Checked items
                       if (checked.isNotEmpty) ...[
@@ -121,7 +123,7 @@ class ShoppingListScreen extends StatelessWidget {
                             Text(
                               'CHECKED — ${checked.length}',
                               style: GoogleFonts.courierPrime(
-                                color: kCreamMuted,
+                                color: AppColors.creamMuted,
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 3,
@@ -175,12 +177,12 @@ class ShoppingListScreen extends StatelessWidget {
         widgets.add(Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Row(children: [
-            const Icon(Icons.restaurant, size: 11, color: kAccent),
+            const Icon(Icons.restaurant, size: 11, color: AppColors.accent),
             const SizedBox(width: 6),
             Text(
               entry.key!.toUpperCase(),
               style: GoogleFonts.courierPrime(
-                color: kAccent,
+                color: AppColors.accent,
                 fontSize: 9,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 3,
@@ -192,7 +194,7 @@ class ShoppingListScreen extends StatelessWidget {
 
       widgets.add(Container(
         decoration: BoxDecoration(
-          border: Border.all(color: kBorderColor),
+          border: Border.all(color: AppColors.border),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Column(
@@ -251,7 +253,7 @@ class ShoppingListScreen extends StatelessWidget {
               child: const Text('CANCEL')),
           FilledButton(
             style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFCF6679)),
+                backgroundColor: AppColors.error),
             onPressed: () {
               Navigator.pop(ctx);
               context.read<ShoppingListCubit>().clearAll();
@@ -280,8 +282,8 @@ class _ProgressBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: kBgCard,
-        border: Border.all(color: kBorderAccent.withAlpha(100)),
+        color: AppColors.bgCard,
+        border: Border.all(color: AppColors.borderAccent.withAlpha(100)),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Column(
@@ -293,7 +295,7 @@ class _ProgressBanner extends StatelessWidget {
               Text(
                 '$remaining ITEM${remaining == 1 ? '' : 'S'} REMAINING',
                 style: GoogleFonts.courierPrime(
-                  color: kCream,
+                  color: AppColors.cream,
                   fontWeight: FontWeight.w700,
                   fontSize: 11,
                   letterSpacing: 2,
@@ -302,7 +304,7 @@ class _ProgressBanner extends StatelessWidget {
               Text(
                 '$checked / $total',
                 style: GoogleFonts.playfairDisplay(
-                  color: kAccent,
+                  color: AppColors.accent,
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
                 ),
@@ -315,8 +317,8 @@ class _ProgressBanner extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 4,
-              backgroundColor: kBgMid,
-              valueColor: const AlwaysStoppedAnimation(kAccent),
+              backgroundColor: AppColors.bgMid,
+              valueColor: const AlwaysStoppedAnimation(AppColors.accent),
             ),
           ),
         ],
@@ -340,9 +342,6 @@ class _ItemTile extends StatelessWidget {
     required this.onRemove,
   });
 
-  String _fmtAmt(double v) =>
-      v == v.roundToDouble() ? v.toInt().toString() : v.toString();
-
   @override
   Widget build(BuildContext context) {
     final checked = item.isChecked;
@@ -354,15 +353,15 @@ class _ItemTile extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: const Color(0xFF3D1520),
+          color: AppColors.errorContainer,
           borderRadius: isLast
               ? const BorderRadius.only(
                   bottomLeft: Radius.circular(6),
                   bottomRight: Radius.circular(6))
               : BorderRadius.zero,
         ),
-        child: const Icon(Icons.delete_outline,
-            color: Color(0xFFCF6679), size: 20),
+        child:
+            const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
       ),
       onDismissed: (_) => onRemove(),
       child: Column(
@@ -390,25 +389,27 @@ class _ItemTile extends StatelessWidget {
                     child: Text(
                       item.ingredientName,
                       style: GoogleFonts.courierPrime(
-                        color: checked ? kCreamMuted : kCream,
+                        color:
+                            checked ? AppColors.creamMuted : AppColors.cream,
                         fontSize: 13,
                         decoration: checked
                             ? TextDecoration.lineThrough
                             : null,
-                        decorationColor: kCreamMuted,
+                        decorationColor: AppColors.creamMuted,
                       ),
                     ),
                   ),
                   Text(
-                    '${_fmtAmt(item.amount)} ${item.unit}',
+                    '${Formatters.amount(item.amount)} ${item.unit}',
                     style: GoogleFonts.courierPrime(
-                      color: checked ? kCreamMuted.withAlpha(100) : kCreamMuted,
+                      color: checked
+                          ? AppColors.creamMuted.withAlpha(100)
+                          : AppColors.creamMuted,
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      decoration: checked
-                          ? TextDecoration.lineThrough
-                          : null,
-                      decorationColor: kCreamMuted,
+                      decoration:
+                          checked ? TextDecoration.lineThrough : null,
+                      decorationColor: AppColors.creamMuted,
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -416,7 +417,8 @@ class _ItemTile extends StatelessWidget {
                     onTap: onRemove,
                     child: const Padding(
                       padding: EdgeInsets.all(4),
-                      child: Icon(Icons.close, size: 14, color: kCreamMuted),
+                      child: Icon(Icons.close,
+                          size: 14, color: AppColors.creamMuted),
                     ),
                   ),
                 ],

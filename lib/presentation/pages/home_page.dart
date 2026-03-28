@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../blocs/shopping_list_cubit.dart';
-import '../blocs/shopping_list_state.dart';
-import '../main.dart';
-import 'recipe_list_screen.dart';
-import 'shopping_list_screen.dart';
+import '../../core/theme/app_colors.dart';
+import '../blocs/shopping_list/shopping_list_cubit.dart';
+import '../blocs/shopping_list/shopping_list_state.dart';
+import 'recipe_list_page.dart';
+import 'shopping_list_page.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  static const _screens = [
-    RecipeListScreen(),
-    ShoppingListScreen(),
+  static const _pages = [
+    RecipeListPage(),
+    ShoppingListPage(),
   ];
 
   @override
@@ -32,11 +32,11 @@ class _HomeScreenState extends State<HomeScreen> {
         return Scaffold(
           body: IndexedStack(
             index: _selectedIndex,
-            children: _screens,
+            children: _pages,
           ),
           bottomNavigationBar: Container(
             decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: kBorderColor)),
+              border: Border(top: BorderSide(color: AppColors.border)),
             ),
             child: NavigationBar(
               selectedIndex: _selectedIndex,
@@ -46,7 +46,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 NavigationDestination(
                   icon: Icon(
                     Icons.menu_book_outlined,
-                    color: _selectedIndex == 0 ? kAccent : kCreamMuted,
+                    color: _selectedIndex == 0
+                        ? AppColors.accent
+                        : AppColors.creamMuted,
                   ),
                   label: 'Recipes',
                 ),
@@ -56,13 +58,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     label: Text(
                       '$uncheckedCount',
                       style: GoogleFonts.courierPrime(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                          color: kBgDark),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.bgDark,
+                      ),
                     ),
                     child: Icon(
                       Icons.shopping_cart_outlined,
-                      color: _selectedIndex == 1 ? kAccent : kCreamMuted,
+                      color: _selectedIndex == 1
+                          ? AppColors.accent
+                          : AppColors.creamMuted,
                     ),
                   ),
                   label: 'Shopping',

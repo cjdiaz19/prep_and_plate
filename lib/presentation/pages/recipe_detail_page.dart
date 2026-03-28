@@ -1,33 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../blocs/recipe_cubit.dart';
-import '../blocs/recipe_state.dart';
-import '../blocs/shopping_list_cubit.dart';
-import '../blocs/shopping_list_state.dart';
-import '../main.dart';
-import '../models/ingredient.dart';
-import 'recipe_edit_screen.dart';
-import 'revision_history_screen.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/utils/formatters.dart';
+import '../../domain/entities/ingredient.dart';
+import '../blocs/recipe/recipe_cubit.dart';
+import '../blocs/recipe/recipe_state.dart';
+import '../blocs/shopping_list/shopping_list_cubit.dart';
+import '../blocs/shopping_list/shopping_list_state.dart';
+import 'recipe_edit_page.dart';
+import 'revision_history_page.dart';
 
-class RecipeDetailScreen extends StatefulWidget {
+class RecipeDetailPage extends StatefulWidget {
   final String recipeId;
-  const RecipeDetailScreen({super.key, required this.recipeId});
+  const RecipeDetailPage({super.key, required this.recipeId});
 
   @override
-  State<RecipeDetailScreen> createState() => _RecipeDetailScreenState();
+  State<RecipeDetailPage> createState() => _RecipeDetailPageState();
 }
 
-class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
+class _RecipeDetailPageState extends State<RecipeDetailPage> {
   double _scale = 1.0;
-
-  String _fmt(double amount) {
-    final v = amount * _scale;
-    if (v == v.roundToDouble()) return v.toInt().toString();
-    return double.parse(v.toStringAsFixed(2))
-        .toString()
-        .replaceAll(RegExp(r'\.?0+$'), '');
-  }
 
   void _confirmDelete(BuildContext context) {
     showDialog(
@@ -41,11 +34,14 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               onPressed: () => Navigator.pop(ctx),
               child: const Text('CANCEL')),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFCF6679)),
+            style: FilledButton.styleFrom(
+                backgroundColor: AppColors.error),
             onPressed: () {
               Navigator.pop(ctx);
               context.read<RecipeCubit>().deleteRecipe(widget.recipeId);
-              context.read<ShoppingListCubit>().removeByRecipeId(widget.recipeId);
+              context
+                  .read<ShoppingListCubit>()
+                  .removeByRecipeId(widget.recipeId);
               Navigator.pop(context);
             },
             child: const Text('DELETE'),
@@ -61,7 +57,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       builder: (context, recipeState) {
         return BlocBuilder<ShoppingListCubit, ShoppingListState>(
           builder: (context, shoppingState) {
-            final recipe = context.read<RecipeCubit>().getById(widget.recipeId);
+            final recipe =
+                context.read<RecipeCubit>().getById(widget.recipeId);
 
             if (recipe == null) {
               return Scaffold(
@@ -71,14 +68,14 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             }
 
             return Scaffold(
-              backgroundColor: kBgDark,
+              backgroundColor: AppColors.bgDark,
               body: CustomScrollView(
                 slivers: [
                   // ── App Bar ──────────────────────────────────────────────
                   SliverAppBar(
                     pinned: true,
                     expandedHeight: 120,
-                    backgroundColor: kBgDark,
+                    backgroundColor: AppColors.bgDark,
                     surfaceTintColor: Colors.transparent,
                     flexibleSpace: FlexibleSpaceBar(
                       titlePadding:
@@ -86,7 +83,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       title: Text(
                         recipe.title,
                         style: GoogleFonts.playfairDisplay(
-                          color: kCream,
+                          color: AppColors.cream,
                           fontWeight: FontWeight.w700,
                           fontSize: 18,
                         ),
@@ -95,8 +92,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       ),
                       background: Container(
                         decoration: const BoxDecoration(
-                          border:
-                              Border(bottom: BorderSide(color: kBorderColor)),
+                          border: Border(
+                              bottom: BorderSide(color: AppColors.border)),
                         ),
                       ),
                     ),
@@ -108,7 +105,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                           onPressed: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => RevisionHistoryScreen(
+                              builder: (_) => RevisionHistoryPage(
                                   recipeId: widget.recipeId),
                             ),
                           ),
@@ -120,7 +117,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                           context,
                           MaterialPageRoute(
                             builder: (_) =>
-                                RecipeEditScreen(recipeId: widget.recipeId),
+                                RecipeEditPage(recipeId: widget.recipeId),
                           ),
                         ),
                       ),
@@ -140,7 +137,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         Text(
                           recipe.description,
                           style: GoogleFonts.courierPrime(
-                              color: kCreamMuted, fontSize: 13, height: 1.8),
+                              color: AppColors.creamMuted,
+                              fontSize: 13,
+                              height: 1.8),
                         ),
                         const SizedBox(height: 20),
 
@@ -152,15 +151,16 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                             _MetaChip(
                               label:
                                   '${(recipe.servings * _scale).toStringAsFixed(_scale == _scale.roundToDouble() ? 0 : 1)} SERVINGS',
-                              color: kAccent,
+                              color: AppColors.accent,
                             ),
                             _MetaChip(
-                              label: '${recipe.ingredients.length} INGREDIENTS',
-                              color: kCreamMuted,
+                              label:
+                                  '${recipe.ingredients.length} INGREDIENTS',
+                              color: AppColors.creamMuted,
                             ),
                             _MetaChip(
                               label: '${recipe.steps.length} STEPS',
-                              color: kCreamMuted,
+                              color: AppColors.creamMuted,
                             ),
                           ],
                         ),
@@ -173,12 +173,11 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         ),
                         const SizedBox(height: 28),
 
-                        // Ingredients section header
+                        // Ingredients header
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            _SectionTitle(
-                                prefix: 'Ingredients', italic: ''),
+                            const _SectionTitle(prefix: 'Ingredients'),
                             TextButton.icon(
                               icon: const Icon(Icons.add_shopping_cart,
                                   size: 14),
@@ -195,9 +194,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                     content: const Text(
                                         'All ingredients added to list'),
                                     action: SnackBarAction(
-                                      label: 'OK',
-                                      onPressed: () {},
-                                    ),
+                                        label: 'OK', onPressed: () {}),
                                   ),
                                 );
                               },
@@ -209,7 +206,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         // Ingredient tiles
                         Container(
                           decoration: BoxDecoration(
-                            border: Border.all(color: kBorderColor),
+                            border: Border.all(color: AppColors.border),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Column(
@@ -218,7 +215,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                 .entries
                                 .map((e) => _IngredientTile(
                                       ingredient: e.value,
-                                      scaledAmount: _fmt(e.value.amount),
+                                      scaledAmount: Formatters.amount(
+                                          e.value.amount * _scale),
                                       isLast: e.key ==
                                           recipe.ingredients.length - 1,
                                       inCart: context
@@ -226,8 +224,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                           .isIngredientAdded(
                                               e.value.id, recipe.id),
                                       onToggleCart: () {
-                                        final sl = context
-                                            .read<ShoppingListCubit>();
+                                        final sl =
+                                            context.read<ShoppingListCubit>();
                                         if (sl.isIngredientAdded(
                                             e.value.id, recipe.id)) {
                                           final item = shoppingState.items
@@ -237,9 +235,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                                   i.recipeId == recipe.id);
                                           sl.removeItem(item.id);
                                         } else {
-                                          sl.addIngredient(
-                                              e.value,
-                                              recipe.id,
+                                          sl.addIngredient(e.value, recipe.id,
                                               recipe.title);
                                         }
                                       },
@@ -249,8 +245,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         ),
                         const SizedBox(height: 28),
 
-                        // Instructions section
-                        _SectionTitle(prefix: 'Instructions', italic: ''),
+                        // Instructions
+                        const _SectionTitle(prefix: 'Instructions'),
                         const SizedBox(height: 16),
                         ...recipe.steps.asMap().entries.map(
                               (e) => _StepTile(
@@ -276,36 +272,18 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
 class _SectionTitle extends StatelessWidget {
   final String prefix;
-  final String italic;
 
-  const _SectionTitle({required this.prefix, required this.italic});
+  const _SectionTitle({required this.prefix});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          prefix,
-          style: GoogleFonts.playfairDisplay(
-            color: kCream,
-            fontWeight: FontWeight.w700,
-            fontSize: 22,
-          ),
-        ),
-        if (italic.isNotEmpty) ...[
-          const SizedBox(width: 6),
-          Text(
-            italic,
-            style: GoogleFonts.playfairDisplay(
-              color: kAccent,
-              fontWeight: FontWeight.w700,
-              fontStyle: FontStyle.italic,
-              fontSize: 22,
-            ),
-          ),
-        ],
-      ],
+    return Text(
+      prefix,
+      style: GoogleFonts.playfairDisplay(
+        color: AppColors.cream,
+        fontWeight: FontWeight.w700,
+        fontSize: 22,
+      ),
     );
   }
 }
@@ -349,8 +327,8 @@ class _ScaleCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: kBgCard,
-        border: Border.all(color: kBorderColor),
+        color: AppColors.bgCard,
+        border: Border.all(color: AppColors.border),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Column(
@@ -361,7 +339,7 @@ class _ScaleCard extends StatelessWidget {
               Text(
                 'SCALE RECIPE',
                 style: GoogleFonts.courierPrime(
-                  color: kAccent,
+                  color: AppColors.accent,
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 3,
@@ -371,7 +349,7 @@ class _ScaleCard extends StatelessWidget {
               Text(
                 '${scale}×',
                 style: GoogleFonts.playfairDisplay(
-                  color: kAccent,
+                  color: AppColors.accent,
                   fontWeight: FontWeight.w700,
                   fontSize: 18,
                 ),
@@ -424,16 +402,16 @@ class _PresetBtn extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 6),
         decoration: BoxDecoration(
-          color: active ? kAccent : kBgMid,
+          color: active ? AppColors.accent : AppColors.bgMid,
           borderRadius: BorderRadius.circular(3),
           border: Border.all(
-              color: active ? kAccent : kBorderColor),
+              color: active ? AppColors.accent : AppColors.border),
         ),
         alignment: Alignment.center,
         child: Text(
           label,
           style: GoogleFonts.courierPrime(
-            color: active ? kBgDark : kCreamMuted,
+            color: active ? AppColors.bgDark : AppColors.creamMuted,
             fontSize: 11,
             fontWeight: active ? FontWeight.w700 : FontWeight.w400,
           ),
@@ -470,7 +448,7 @@ class _IngredientTile extends StatelessWidget {
                 width: 6,
                 height: 6,
                 decoration: const BoxDecoration(
-                  color: kAccent,
+                  color: AppColors.accent,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -479,13 +457,13 @@ class _IngredientTile extends StatelessWidget {
                 child: Text(
                   ingredient.name,
                   style: GoogleFonts.courierPrime(
-                      color: kCream, fontSize: 13),
+                      color: AppColors.cream, fontSize: 13),
                 ),
               ),
               Text(
                 '$scaledAmount ${ingredient.unit}',
                 style: GoogleFonts.courierPrime(
-                  color: kCreamMuted,
+                  color: AppColors.creamMuted,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
@@ -500,7 +478,7 @@ class _IngredientTile extends StatelessWidget {
                         ? Icons.shopping_cart
                         : Icons.add_shopping_cart_outlined,
                     size: 18,
-                    color: inCart ? kAccent : kCreamMuted,
+                    color: inCart ? AppColors.accent : AppColors.creamMuted,
                   ),
                 ),
               ),
@@ -532,15 +510,15 @@ class _StepTile extends StatelessWidget {
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color: kBgMid,
+              color: AppColors.bgMid,
               borderRadius: BorderRadius.circular(3),
-              border: Border.all(color: kBorderAccent),
+              border: Border.all(color: AppColors.borderAccent),
             ),
             alignment: Alignment.center,
             child: Text(
               '$number',
               style: GoogleFonts.playfairDisplay(
-                color: kAccent,
+                color: AppColors.accent,
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
               ),
@@ -553,7 +531,7 @@ class _StepTile extends StatelessWidget {
               child: Text(
                 text,
                 style: GoogleFonts.courierPrime(
-                    color: kCream, fontSize: 13, height: 1.7),
+                    color: AppColors.cream, fontSize: 13, height: 1.7),
               ),
             ),
           ),

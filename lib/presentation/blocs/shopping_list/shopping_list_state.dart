@@ -1,4 +1,4 @@
-import '../models/shopping_list_item.dart';
+import '../../../domain/entities/shopping_list_item.dart';
 
 class ShoppingListState {
   final List<ShoppingListItem> items;

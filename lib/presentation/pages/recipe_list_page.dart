@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../blocs/recipe_cubit.dart';
-import '../blocs/recipe_state.dart';
-import '../main.dart';
-import '../models/recipe.dart';
-import 'recipe_detail_screen.dart';
-import 'recipe_edit_screen.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/utils/formatters.dart';
+import '../../domain/entities/recipe.dart';
+import '../blocs/recipe/recipe_cubit.dart';
+import '../blocs/recipe/recipe_state.dart';
+import 'recipe_detail_page.dart';
+import 'recipe_edit_page.dart';
 
-class RecipeListScreen extends StatefulWidget {
-  const RecipeListScreen({super.key});
+class RecipeListPage extends StatefulWidget {
+  const RecipeListPage({super.key});
 
   @override
-  State<RecipeListScreen> createState() => _RecipeListScreenState();
+  State<RecipeListPage> createState() => _RecipeListPageState();
 }
 
-class _RecipeListScreenState extends State<RecipeListScreen> {
+class _RecipeListPageState extends State<RecipeListPage> {
   final _searchController = TextEditingController();
   String _query = '';
 
@@ -35,31 +36,6 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
         .toList();
   }
 
-  String _getEmoji(String title) {
-    final t = title.toLowerCase();
-    if (t.contains('pasta') || t.contains('spaghetti') || t.contains('carbonara')) return '🍝';
-    if (t.contains('ramen') || t.contains('noodle') || t.contains('soup')) return '🍜';
-    if (t.contains('salad')) return '🥗';
-    if (t.contains('avocado') || t.contains('toast')) return '🥑';
-    if (t.contains('cake') || t.contains('cheesecake') || t.contains('dessert')) return '🍰';
-    if (t.contains('smoothie') || t.contains('shake') || t.contains('juice')) return '🥤';
-    if (t.contains('chicken')) return '🍗';
-    if (t.contains('fish') || t.contains('salmon') || t.contains('cod')) return '🐟';
-    if (t.contains('beef') || t.contains('steak') || t.contains('burger')) return '🥩';
-    if (t.contains('pizza')) return '🍕';
-    if (t.contains('taco') || t.contains('burrito')) return '🌮';
-    if (t.contains('sushi') || t.contains('nigiri')) return '🍣';
-    if (t.contains('egg') || t.contains('breakfast') || t.contains('pancake')) return '🍳';
-    if (t.contains('bread') || t.contains('focaccia') || t.contains('cookie')) return '🍞';
-    return '🍽️';
-  }
-
-  String _shortDate(DateTime dt) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<RecipeCubit, RecipeState>(
@@ -67,14 +43,14 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
         final recipes = _filtered(state.recipes);
 
         return Scaffold(
-          backgroundColor: kBgDark,
+          backgroundColor: AppColors.bgDark,
           body: CustomScrollView(
             slivers: [
               // ── App Bar ────────────────────────────────────────────────────
               SliverAppBar(
                 pinned: true,
                 expandedHeight: 100,
-                backgroundColor: kBgDark,
+                backgroundColor: AppColors.bgDark,
                 surfaceTintColor: Colors.transparent,
                 flexibleSpace: FlexibleSpaceBar(
                   titlePadding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
@@ -84,7 +60,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                       Text(
                         'Prep ',
                         style: GoogleFonts.playfairDisplay(
-                          color: kCream,
+                          color: AppColors.cream,
                           fontWeight: FontWeight.w700,
                           fontSize: 22,
                         ),
@@ -92,7 +68,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                       Text(
                         '&',
                         style: GoogleFonts.playfairDisplay(
-                          color: kAccent,
+                          color: AppColors.accent,
                           fontWeight: FontWeight.w700,
                           fontStyle: FontStyle.italic,
                           fontSize: 22,
@@ -101,7 +77,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                       Text(
                         ' Plate',
                         style: GoogleFonts.playfairDisplay(
-                          color: kCream,
+                          color: AppColors.cream,
                           fontWeight: FontWeight.w700,
                           fontSize: 22,
                         ),
@@ -110,18 +86,19 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                   ),
                   background: Container(
                     decoration: const BoxDecoration(
-                      border: Border(bottom: BorderSide(color: kBorderColor)),
+                      border: Border(
+                          bottom: BorderSide(color: AppColors.border)),
                     ),
                   ),
                 ),
                 actions: [
                   IconButton(
-                    icon: const Icon(Icons.add, color: kAccent),
+                    icon: const Icon(Icons.add, color: AppColors.accent),
                     tooltip: 'New Recipe',
                     onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const RecipeEditScreen()),
+                          builder: (_) => const RecipeEditPage()),
                     ),
                   ),
                 ],
@@ -161,7 +138,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                   child: Text(
                     '${recipes.length} RECIPE${recipes.length == 1 ? '' : 'S'}',
                     style: GoogleFonts.courierPrime(
-                      color: kCreamMuted,
+                      color: AppColors.creamMuted,
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 3,
@@ -185,7 +162,9 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                               : 'No results for "$_query"',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.courierPrime(
-                              color: kCreamMuted, fontSize: 14, height: 1.8),
+                              color: AppColors.creamMuted,
+                              fontSize: 14,
+                              height: 1.8),
                         ),
                       ],
                     ),
@@ -201,13 +180,13 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                       final recipe = recipes[index];
                       return _RecipeCard(
                         recipe: recipe,
-                        emoji: _getEmoji(recipe.title),
-                        shortDate: _shortDate(recipe.updatedAt),
+                        emoji: Formatters.recipeEmoji(recipe.title),
+                        shortDate: Formatters.shortDate(recipe.updatedAt),
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) =>
-                                RecipeDetailScreen(recipeId: recipe.id),
+                                RecipeDetailPage(recipeId: recipe.id),
                           ),
                         ),
                       );
@@ -219,19 +198,19 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const RecipeEditScreen()),
+              MaterialPageRoute(builder: (_) => const RecipeEditPage()),
             ),
-            icon: const Icon(Icons.add, color: kBgDark),
+            icon: const Icon(Icons.add, color: AppColors.bgDark),
             label: Text(
               'NEW RECIPE',
               style: GoogleFonts.courierPrime(
-                color: kBgDark,
+                color: AppColors.bgDark,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 2,
                 fontSize: 11,
               ),
             ),
-            backgroundColor: kAccent,
+            backgroundColor: AppColors.accent,
           ),
         );
       },
@@ -258,15 +237,15 @@ class _RecipeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: kBgCard,
+        color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: kBorderColor),
+        border: Border.all(color: AppColors.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        splashColor: kAccent.withAlpha(20),
-        highlightColor: kAccent.withAlpha(10),
+        splashColor: AppColors.accent.withAlpha(20),
+        highlightColor: AppColors.accent.withAlpha(10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -277,13 +256,12 @@ class _RecipeCard extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   Container(
-                    color: kBgMid,
+                    color: AppColors.bgMid,
                     child: Center(
                       child: Text(emoji,
                           style: const TextStyle(fontSize: 64)),
                     ),
                   ),
-                  // Gradient fade at bottom
                   Positioned(
                     bottom: 0,
                     left: 0,
@@ -296,20 +274,20 @@ class _RecipeCard extends StatelessWidget {
                           end: Alignment.bottomCenter,
                           colors: [
                             Colors.transparent,
-                            kBgCard.withAlpha(200),
+                            AppColors.bgCard.withAlpha(200),
                           ],
                         ),
                       ),
                     ),
                   ),
-                  // Badge
                   if (recipe.revisions.isNotEmpty)
                     Positioned(
                       top: 10,
                       left: 10,
                       child: _Badge(
-                          label:
-                              '${recipe.revisions.length} REV${recipe.revisions.length == 1 ? '' : 'S'}'),
+                        label:
+                            '${recipe.revisions.length} REV${recipe.revisions.length == 1 ? '' : 'S'}',
+                      ),
                     ),
                 ],
               ),
@@ -320,14 +298,12 @@ class _RecipeCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Meta row
                   _MetaRow(recipe: recipe),
                   const SizedBox(height: 8),
-                  // Title
                   Text(
                     recipe.title,
                     style: GoogleFonts.playfairDisplay(
-                      color: kCream,
+                      color: AppColors.cream,
                       fontWeight: FontWeight.w700,
                       fontSize: 18,
                       height: 1.25,
@@ -336,16 +312,14 @@ class _RecipeCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
-                  // Description
                   Text(
                     recipe.description,
                     style: GoogleFonts.courierPrime(
-                        color: kCreamMuted, fontSize: 12, height: 1.6),
+                        color: AppColors.creamMuted, fontSize: 12, height: 1.6),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 14),
-                  // Footer
                   const Divider(height: 1),
                   const SizedBox(height: 12),
                   Row(
@@ -354,12 +328,12 @@ class _RecipeCard extends StatelessWidget {
                       Text(
                         shortDate,
                         style: GoogleFonts.courierPrime(
-                            color: kCreamMuted,
+                            color: AppColors.creamMuted,
                             fontSize: 10,
                             letterSpacing: 0.5),
                       ),
                       const Icon(Icons.arrow_forward,
-                          size: 14, color: kAccent),
+                          size: 14, color: AppColors.accent),
                     ],
                   ),
                 ],
@@ -381,13 +355,13 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: kAccent,
+        color: AppColors.accent,
         borderRadius: BorderRadius.circular(2),
       ),
       child: Text(
         label,
         style: GoogleFonts.courierPrime(
-          color: kBgDark,
+          color: AppColors.bgDark,
           fontSize: 9,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.5,
@@ -430,12 +404,12 @@ class _MetaItem extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 11, color: kCreamMuted),
+        Icon(icon, size: 11, color: AppColors.creamMuted),
         const SizedBox(width: 3),
         Text(
           text,
           style: GoogleFonts.courierPrime(
-              color: kCreamMuted, fontSize: 10, letterSpacing: 0.5),
+              color: AppColors.creamMuted, fontSize: 10, letterSpacing: 0.5),
         ),
       ],
     );
@@ -449,8 +423,7 @@ class _Dot extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Padding(
       padding: EdgeInsets.symmetric(horizontal: 6),
-      child: Text('●',
-          style: TextStyle(fontSize: 4, color: kAccent)),
+      child: Text('●', style: TextStyle(fontSize: 4, color: AppColors.accent)),
     );
   }
 }

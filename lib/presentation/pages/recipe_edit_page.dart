@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../blocs/recipe_cubit.dart';
-import '../main.dart';
-import '../models/ingredient.dart';
-import '../models/recipe.dart';
-import 'revision_history_screen.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/utils/formatters.dart';
+import '../../domain/entities/ingredient.dart';
+import '../../domain/entities/recipe.dart';
+import '../blocs/recipe/recipe_cubit.dart';
+import 'revision_history_page.dart';
 
-class RecipeEditScreen extends StatefulWidget {
+class RecipeEditPage extends StatefulWidget {
   final String? recipeId;
-  const RecipeEditScreen({super.key, this.recipeId});
+  const RecipeEditPage({super.key, this.recipeId});
 
   @override
-  State<RecipeEditScreen> createState() => _RecipeEditScreenState();
+  State<RecipeEditPage> createState() => _RecipeEditPageState();
 }
 
-class _RecipeEditScreenState extends State<RecipeEditScreen> {
+class _RecipeEditPageState extends State<RecipeEditPage> {
   final _formKey = GlobalKey<FormState>();
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
@@ -29,8 +30,7 @@ class _RecipeEditScreenState extends State<RecipeEditScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _loadExisting());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadExisting());
   }
 
   void _loadExisting() {
@@ -39,8 +39,7 @@ class _RecipeEditScreenState extends State<RecipeEditScreen> {
       _addStep();
       return;
     }
-    final recipe =
-        context.read<RecipeCubit>().getById(widget.recipeId!);
+    final recipe = context.read<RecipeCubit>().getById(widget.recipeId!);
     if (recipe == null) return;
 
     _titleCtrl.text = recipe.title;
@@ -49,20 +48,15 @@ class _RecipeEditScreenState extends State<RecipeEditScreen> {
       _servings = recipe.servings;
       _ingredients.addAll(recipe.ingredients.map((ing) => _IngEntry(
             id: ing.id,
-            nameCtrl:
-                TextEditingController(text: ing.name),
+            nameCtrl: TextEditingController(text: ing.name),
             amountCtrl: TextEditingController(
-                text: _fmtAmt(ing.amount)),
-            unitCtrl:
-                TextEditingController(text: ing.unit),
+                text: Formatters.amount(ing.amount)),
+            unitCtrl: TextEditingController(text: ing.unit),
           )));
       _stepCtrls.addAll(
           recipe.steps.map((s) => TextEditingController(text: s)));
     });
   }
-
-  String _fmtAmt(double v) =>
-      v == v.roundToDouble() ? v.toInt().toString() : v.toString();
 
   void _addIngredient() => setState(() => _ingredients.add(_IngEntry(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -123,7 +117,7 @@ class _RecipeEditScreenState extends State<RecipeEditScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => RevisionHistoryScreen(
+          builder: (_) => RevisionHistoryPage(
               recipeId: widget.recipeId!, showLatest: true),
         ),
       );
@@ -155,17 +149,17 @@ class _RecipeEditScreenState extends State<RecipeEditScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBgDark,
+      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
         title: Text(_isEditing ? 'Edit Recipe' : 'New Recipe'),
-        backgroundColor: kBgDark,
+        backgroundColor: AppColors.bgDark,
         actions: [
           TextButton(
             onPressed: _save,
             child: Text(
               'SAVE',
               style: GoogleFonts.courierPrime(
-                color: kAccent,
+                color: AppColors.accent,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 2,
                 fontSize: 12,
@@ -184,7 +178,7 @@ class _RecipeEditScreenState extends State<RecipeEditScreen> {
             TextFormField(
               controller: _titleCtrl,
               style: GoogleFonts.playfairDisplay(
-                  color: kCream, fontWeight: FontWeight.w600),
+                  color: AppColors.cream, fontWeight: FontWeight.w600),
               decoration: const InputDecoration(
                 labelText: 'Recipe title',
                 hintText: 'e.g. Classic Carbonara',
@@ -196,7 +190,8 @@ class _RecipeEditScreenState extends State<RecipeEditScreen> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _descCtrl,
-              style: GoogleFonts.courierPrime(color: kCream, fontSize: 13),
+              style: GoogleFonts.courierPrime(
+                  color: AppColors.cream, fontSize: 13),
               decoration: const InputDecoration(
                 labelText: 'Description',
                 hintText: 'A brief description...',
@@ -209,18 +204,19 @@ class _RecipeEditScreenState extends State<RecipeEditScreen> {
 
             // Servings
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                  color: kBgMid,
+                  color: AppColors.bgMid,
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: kBorderColor)),
+                  border: Border.all(color: AppColors.border)),
               child: Row(
                 children: [
                   const Icon(Icons.people_outline, size: 18),
                   const SizedBox(width: 10),
                   Text('Servings',
                       style: GoogleFonts.courierPrime(
-                          color: kCreamMuted, fontSize: 13)),
+                          color: AppColors.creamMuted, fontSize: 13)),
                   const Spacer(),
                   _CircleButton(
                     icon: Icons.remove,
@@ -233,7 +229,7 @@ class _RecipeEditScreenState extends State<RecipeEditScreen> {
                     child: Text(
                       '$_servings',
                       style: GoogleFonts.playfairDisplay(
-                        color: kCream,
+                        color: AppColors.cream,
                         fontWeight: FontWeight.w700,
                         fontSize: 18,
                       ),
@@ -262,8 +258,7 @@ class _RecipeEditScreenState extends State<RecipeEditScreen> {
             ),
             const SizedBox(height: 4),
             if (_ingredients.isEmpty)
-              _EmptyHint(
-                  text: 'No ingredients yet. Tap ADD to begin.'),
+              _EmptyHint(text: 'No ingredients yet. Tap ADD to begin.'),
             ...(_ingredients.asMap().entries.map((e) => _IngFormRow(
                   key: ValueKey(e.value.id),
                   entry: e.value,
@@ -301,7 +296,8 @@ class _RecipeEditScreenState extends State<RecipeEditScreen> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _changeNoteCtrl,
-                style: GoogleFonts.courierPrime(color: kCream, fontSize: 13),
+                style: GoogleFonts.courierPrime(
+                    color: AppColors.cream, fontSize: 13),
                 decoration: const InputDecoration(
                   labelText: 'What changed? (optional)',
                   hintText: 'e.g. Adjusted seasoning...',
@@ -312,7 +308,9 @@ class _RecipeEditScreenState extends State<RecipeEditScreen> {
               Text(
                 'This note will be saved in the revision history.',
                 style: GoogleFonts.courierPrime(
-                    color: kCreamMuted, fontSize: 11, letterSpacing: 0.5),
+                    color: AppColors.creamMuted,
+                    fontSize: 11,
+                    letterSpacing: 0.5),
               ),
               const SizedBox(height: 28),
             ],
@@ -323,8 +321,8 @@ class _RecipeEditScreenState extends State<RecipeEditScreen> {
               child: FilledButton.icon(
                 onPressed: _save,
                 icon: const Icon(Icons.check, size: 16),
-                label: Text(
-                    _isEditing ? 'SAVE CHANGES' : 'CREATE RECIPE'),
+                label:
+                    Text(_isEditing ? 'SAVE CHANGES' : 'CREATE RECIPE'),
               ),
             ),
             const SizedBox(height: 32),
@@ -346,7 +344,7 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       label,
       style: GoogleFonts.courierPrime(
-        color: kAccent,
+        color: AppColors.accent,
         fontSize: 10,
         fontWeight: FontWeight.w700,
         letterSpacing: 3,
@@ -365,7 +363,7 @@ class _EmptyHint extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Text(text,
           style: GoogleFonts.courierPrime(
-              color: kCreamMuted,
+              color: AppColors.creamMuted,
               fontSize: 12,
               fontStyle: FontStyle.italic)),
     );
@@ -387,11 +385,15 @@ class _CircleButton extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-              color: onTap == null ? kBorderColor : kBorderAccent),
+              color: onTap == null
+                  ? AppColors.border
+                  : AppColors.borderAccent),
         ),
         child: Icon(icon,
             size: 16,
-            color: onTap == null ? kCreamMuted.withAlpha(100) : kAccent),
+            color: onTap == null
+                ? AppColors.creamMuted.withAlpha(100)
+                : AppColors.accent),
       ),
     );
   }
@@ -440,8 +442,8 @@ class _IngFormRow extends StatelessWidget {
             flex: 4,
             child: TextFormField(
               controller: entry.nameCtrl,
-              style:
-                  GoogleFonts.courierPrime(color: kCream, fontSize: 13),
+              style: GoogleFonts.courierPrime(
+                  color: AppColors.cream, fontSize: 13),
               decoration: InputDecoration(
                   labelText: 'Ingredient ${index + 1}',
                   hintText: 'Flour'),
@@ -455,12 +457,12 @@ class _IngFormRow extends StatelessWidget {
             flex: 2,
             child: TextFormField(
               controller: entry.amountCtrl,
-              style:
-                  GoogleFonts.courierPrime(color: kCream, fontSize: 13),
+              style: GoogleFonts.courierPrime(
+                  color: AppColors.cream, fontSize: 13),
               decoration:
                   const InputDecoration(labelText: 'Amount'),
-              keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return 'Required';
                 if (double.tryParse(v.trim()) == null) return 'Invalid';
@@ -473,8 +475,8 @@ class _IngFormRow extends StatelessWidget {
             flex: 2,
             child: TextFormField(
               controller: entry.unitCtrl,
-              style:
-                  GoogleFonts.courierPrime(color: kCream, fontSize: 13),
+              style: GoogleFonts.courierPrime(
+                  color: AppColors.cream, fontSize: 13),
               decoration: const InputDecoration(
                   labelText: 'Unit', hintText: 'g, cup…'),
             ),
@@ -482,7 +484,7 @@ class _IngFormRow extends StatelessWidget {
           const SizedBox(width: 4),
           IconButton(
             icon: const Icon(Icons.remove_circle_outline, size: 20),
-            color: const Color(0xFFCF6679),
+            color: AppColors.error,
             onPressed: onRemove,
             visualDensity: VisualDensity.compact,
           ),
@@ -515,15 +517,15 @@ class _StepFormRow extends StatelessWidget {
             height: 26,
             margin: const EdgeInsets.only(top: 14),
             decoration: BoxDecoration(
-              color: kBgMid,
+              color: AppColors.bgMid,
               borderRadius: BorderRadius.circular(3),
-              border: Border.all(color: kBorderAccent),
+              border: Border.all(color: AppColors.borderAccent),
             ),
             alignment: Alignment.center,
             child: Text(
               '$number',
               style: GoogleFonts.playfairDisplay(
-                  color: kAccent,
+                  color: AppColors.accent,
                   fontWeight: FontWeight.w700,
                   fontSize: 12),
             ),
@@ -532,8 +534,8 @@ class _StepFormRow extends StatelessWidget {
           Expanded(
             child: TextFormField(
               controller: ctrl,
-              style:
-                  GoogleFonts.courierPrime(color: kCream, fontSize: 13),
+              style: GoogleFonts.courierPrime(
+                  color: AppColors.cream, fontSize: 13),
               decoration: InputDecoration(
                   labelText: 'Step $number',
                   hintText: 'Describe this step…'),
@@ -546,7 +548,7 @@ class _StepFormRow extends StatelessWidget {
           const SizedBox(width: 4),
           IconButton(
             icon: const Icon(Icons.remove_circle_outline, size: 20),
-            color: const Color(0xFFCF6679),
+            color: AppColors.error,
             onPressed: onRemove,
             visualDensity: VisualDensity.compact,
           ),

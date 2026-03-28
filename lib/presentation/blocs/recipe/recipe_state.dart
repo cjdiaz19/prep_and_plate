@@ -1,4 +1,4 @@
-import '../models/recipe.dart';
+import '../../../domain/entities/recipe.dart';
 
 class RecipeState {
   final List<Recipe> recipes;

@@ -1,3 +1,4 @@
+/// A single item on the shopping list derived from a recipe ingredient.
 class ShoppingListItem {
   final String id;
   final String ingredientId;
@@ -19,16 +20,15 @@ class ShoppingListItem {
     this.recipeName,
   });
 
-  ShoppingListItem copyWith({bool? isChecked, double? amount}) {
-    return ShoppingListItem(
-      id: id,
-      ingredientId: ingredientId,
-      ingredientName: ingredientName,
-      amount: amount ?? this.amount,
-      unit: unit,
-      isChecked: isChecked ?? this.isChecked,
-      recipeId: recipeId,
-      recipeName: recipeName,
-    );
-  }
+  ShoppingListItem copyWith({bool? isChecked, double? amount}) =>
+      ShoppingListItem(
+        id: id,
+        ingredientId: ingredientId,
+        ingredientName: ingredientName,
+        amount: amount ?? this.amount,
+        unit: unit,
+        isChecked: isChecked ?? this.isChecked,
+        recipeId: recipeId,
+        recipeName: recipeName,
+      );
 }
